@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pet Breed Classifier</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <style>
+    /* ✅ Chatbot Styles */
+    #chatbotBtn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #0984e3;
+      color: white;
+      padding: 12px 16px;
+      border-radius: 50px;
+      font-size: 16px;
+      cursor: pointer;
+      z-index: 9999;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    #chatbotBox {
+      display: none;
+      position: fixed;
+      bottom: 70px;
+      right: 20px;
+      width: 300px;
+      max-height: 400px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #chatbotHeader {
+      background: #0984e3;
+      color: white;
+      padding: 10px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    #chatbotMessages {
+      padding: 10px;
+      flex: 1;
+      overflow-y: auto;
+      font-size: 14px;
+    }
+
+    #chatbotMessages div {
+      margin-bottom: 8px;
+    }
+
+    #chatbotMessages .user {
+      text-align: right;
+      color: #2d3436;
+    }
+
+    #chatbotMessages .bot {
+      text-align: left;
+      color: #636e72;
+    }
+
+    #chatbotInput {
+      border: none;
+      border-top: 1px solid #ccc;
+      padding: 10px;
+      outline: none;
+    }
+
+    body.dark {
+      background-color: #121212;
+      color: white;
+    }
+
+    body.dark .container {
+      background-color: #1e1e1e;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.05);
+    }
+
+    #dropzone {
+      display: block;
+      padding: 20px;
+      border: 2px dashed #ccc;
+      border-radius: 10px;
+      text-align: center;
+      color: #666;
+      cursor: pointer;
+      transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+
+    #dropzone.hover {
+      background-color: #ecf0f1;
+      border-color: #0984e3;
+      color: #0984e3;
+    }
+
+    body.dark #dropzone {
+      border-color: #555;
+      color: #ccc;
+    }
+
+    body.dark #dropzone.hover {
+      background-color: #2a2a2a;
+      border-color: #74b9ff;
+      color: #74b9ff;
+    }
+
+    .image-box {
+      margin: 30px auto 10px;
+      width: 250px;
+      height: 250px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .image-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.4s ease;
+    }
+
+    .image-box:hover {
+      transform: scale(1.03);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    .image-box:hover img {
+      transform: scale(1.05);
+    }
+
+    #animatedTitle {
+      font-weight: bold;
+      font-size: 28px;
+      margin-bottom: 20px;
+      text-align: center;
+      background: linear-gradient(270deg, #3b8281, #0984e3, #6c5ce7);
+      background-size: 600% 600%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradientShift 6s ease infinite;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .fade-in {
+      animation: fadeInUp 0.5s ease forwards;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <!-- ✅ Chatbot -->
+  <div id="chatbotBtn" onclick="toggleChatbot()">💬 مساعدة؟</div>
+  <div id="chatbotBox">
+    <div id="chatbotHeader">مساعد الذكاء الاصطناعي 🤖</div>
+    <div id="chatbotMessages"></div>
+    <input id="chatbotInput" type="text" placeholder="اكتب سؤالك..." onkeydown="if(event.key==='Enter')sendChat()" />
+  </div>
+
+  <div class="container">
+    <div style="text-align: right; margin-bottom: 10px;">
+      <button id="themeToggle" style="padding: 8px 16px; border-radius: 6px;">🌗 Toggle Theme</button>
+    </div>
+
+    <h1 id="animatedTitle"></h1>
+
+    <div id="dropContainer">
+      <input type="file" id="imageInput" style="display:none;">
+      <label for="imageInput" id="dropzone">🖼️ Click or Drag & Drop an image</label>
+    </div>
+
+    <select id="modelSelect">
+      <option value="cnn">CNN</option>
+      <option value="logistic">Logistic Regression</option>
+      <option value="knn">KNN</option>
+      <option value="kmeans">KMeans</option>
+    </select><br>
+
+    <button onclick="sendPrediction()">Predict</button>
+    <button onclick="resetAll()" style="background-color: #d63031;">Reset</button>
+    <button onclick="downloadJSON()" style="background-color: #00b894;">Download Result</button>
+
+    <div class="image-box" id="imageWrapper" style="display:none;">
+      <img id="uploadedImg" alt="Uploaded Image">
+    </div>
+
+    <div id="result" style="margin-top: 15px;"></div>
+
+    <div id="feedbackButtons" style="margin-top: 15px; display: none;">
+      <button onclick="playFeedback(true)" style="background-color: #00b894;">Yes ✅</button>
+      <button onclick="playFeedback(false)" style="background-color: #d63031;">No ❌</button>
+    </div>
+
+    <canvas id="accuracyChart" style="margin-top: 40px;"></canvas>
+  </div>
+
+  <script>
+    const themeToggle = document.getElementById("themeToggle");
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "dark") document.body.classList.add("dark");
+    themeToggle.onclick = () => {
+      document.body.classList.toggle("dark");
+      localStorage.setItem("theme", document.body.classList.contains("dark") ? "dark" : "light");
+    };
+
+    const dropzone = document.getElementById("dropzone");
+    const imageInput = document.getElementById("imageInput");
+    const imageWrapper = document.getElementById("imageWrapper");
+    const uploadedImg = document.getElementById("uploadedImg");
+
+    dropzone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropzone.classList.add("hover");
+    });
+
+    dropzone.addEventListener("dragleave", () => dropzone.classList.remove("hover"));
+
+    dropzone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropzone.classList.remove("hover");
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith("image/")) {
+        previewImage(file);
+      }
+    });
+
+    dropzone.addEventListener("click", () => {
+      imageInput.click();
+    });
+
+    imageInput.addEventListener("change", function () {
+      const file = this.files[0];
+      if (file) previewImage(file);
+    });
+
+    function previewImage(file) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        uploadedImg.src = e.target.result;
+        imageWrapper.style.display = "block";
+      };
+      reader.readAsDataURL(file);
+    }
+
+    let lastPrediction = null;
+
+    async function sendPrediction() {
+      if (!imageInput.files.length) return alert("Please select an image.");
+      const model = document.getElementById("modelSelect").value;
+      const formData = new FormData();
+      formData.append("file", imageInput.files[0]);
+      formData.append("model", model);
+
+      const res = await fetch("/predict", { method: "POST", body: formData });
+      const data = await res.json();
+      lastPrediction = data;
+
+      const modelLabel = document.getElementById("modelSelect").selectedOptions[0].text;
+      const resultDiv = document.getElementById("result");
+
+      resultDiv.classList.remove("fade-in");
+      void resultDiv.offsetWidth;
+      resultDiv.innerHTML = `
+        <div class="fade-in">
+          <strong>Prediction:</strong> ${data.prediction}<br>
+          <strong>Model:</strong> ${modelLabel}
+        </div>
+      `;
+
+      document.getElementById("feedbackButtons").style.display = "block";
+    }
+
+    function resetAll() {
+      imageInput.value = "";
+      document.getElementById("modelSelect").selectedIndex = 0;
+      document.getElementById("result").innerText = "";
+      imageWrapper.style.display = "none";
+      uploadedImg.src = "";
+      document.getElementById("feedbackButtons").style.display = "none";
+      lastPrediction = null;
+    }
+
+    function downloadJSON() {
+      if (!lastPrediction) return alert("No prediction to download!");
+      const blob = new Blob([JSON.stringify(lastPrediction, null, 2)], { type: "application/json" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "prediction_result.json";
+      link.click();
+    }
+
+    async function loadChart() {
+      const res = await fetch("/model-accuracies");
+      const data = await res.json();
+      const labels = Object.keys(data);
+      const values = Object.values(data);
+      new Chart(document.getElementById("accuracyChart").getContext("2d"), {
+        type: "bar",
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Accuracy',
+            data: values,
+            backgroundColor: 'rgba(52, 152, 219, 0.7)',
+            borderColor: 'rgba(41, 128, 185, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          scales: { y: { beginAtZero: true, max: 1 } },
+          plugins: {
+            title: { display: true, text: '📊 Model Accuracy Comparison', font: { size: 18 } },
+            legend: { display: false }
+          }
+        }
+      });
+    }
+
+    window.onload = loadChart;
+
+    const correctSound = new Audio("/static/sounds/correct.mp3");
+    const wrongSound = new Audio("/static/sounds/wrong.mp3");
+
+    function playFeedback(isCorrect) {
+      if (isCorrect) correctSound.play();
+      else wrongSound.play();
+    }
+
+    const text = "🐾 Pet Breed Classifier";
+    const titleEl = document.getElementById("animatedTitle");
+    let index = 0;
+    let deleting = false;
+    let lastTimestamp = 0;
+
+    function animateTitleRAF(timestamp) {
+      const delay = deleting ? 60 : 100;
+      if (!lastTimestamp || timestamp - lastTimestamp > delay) {
+        titleEl.innerHTML = index === 0 ? "&nbsp;" : text.slice(0, index);
+        lastTimestamp = timestamp;
+        if (!deleting) {
+          if (index < text.length) index++;
+          else { deleting = true; lastTimestamp += 2000; }
+        } else {
+          if (index > 0) index--;
+          else { deleting = false; lastTimestamp += 1500; }
+        }
+      }
+      requestAnimationFrame(animateTitleRAF);
+    }
+    requestAnimationFrame(animateTitleRAF);
+
+    function toggleChatbot() {
+      const box = document.getElementById("chatbotBox");
+      box.style.display = box.style.display === "block" ? "none" : "block";
+    }
+
+    function sendChat() {
+      const input = document.getElementById("chatbotInput");
+      const message = input.value.trim();
+      if (!message) return;
+      const messagesDiv = document.getElementById("chatbotMessages");
+      messagesDiv.innerHTML += `<div class="user">🧑‍💻 ${message}</div>`;
+
+      let reply = "🤖 معذرة، مش فاهم السؤال.";
+      if (message.includes("توقع") || message.includes("predict")) {
+        reply = "علشان تعمل توقع، ارفع صورة، اختار الموديل، واضغط Predict.";
+      } else if (message.includes("أفضل") || message.includes("model")) {
+        reply = "أفضل موديل غالبًا هو CNN لو عايز دقة أعلى.";
+      } else if (message.includes("أرفع") || message.includes("الصورة")) {
+        reply = "اضغط على المنطقة أو اسحب الصورة فيها.";
+      } else if (message.includes("تحميل") || message.includes("download")) {
+        reply = "بعد التوقع، اضغط على زر Download Result.";
+      }
+
+      messagesDiv.innerHTML += `<div class="bot">${reply}</div>`;
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      input.value = "";
+    }
+  </script>
+</body>
+</html>
